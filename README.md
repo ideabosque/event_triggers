@@ -1,1 +1,1 @@
-# event_triggers
+# cognito_trigger
