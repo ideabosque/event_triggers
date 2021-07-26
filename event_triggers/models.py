@@ -7,6 +7,7 @@ __author__ = "bl"
 import os, pendulum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func, Text, Table
+from sqlalchemy.orm import backref, relationship
 from pynamodb.models import Model
 from pynamodb.attributes import (
     ListAttribute,
@@ -61,12 +62,20 @@ class RoleModel(TraitModel):
     user_ids = ListAttribute()
 
 
+class TeamModel(Base):
+    __tablename__ = "teams"
+    team_id = Column(Integer, primary_key=True, autoincrement=True)
+    seller_id = Column(Integer)
+    team_name = Column(String)
+    vendor_id = Column(Integer)
+
+
 class TeamUserModel(Base):
     __tablename__ = "team_users"
     team_user_id = Column(Integer, primary_key=True, autoincrement=True)
     team_id = Column(Integer, ForeignKey("teams.team_id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    # team = relationship("TeamModel", backref="user_teams")
+    team = relationship("TeamModel", backref="user_teams")
     # user = relationship("UserModel", backref="team_users")
 
 
@@ -93,6 +102,7 @@ class UserModel(Base):
     seller_id = Column(Integer)
     erp_employee_ref = Column(Integer)
     cognito_user_sub = Column(String)
+    s_vendor_id = Column(String)
     # sellers = relationship(
     #     "SellerManagerModel", back_populates="manager"
     # )

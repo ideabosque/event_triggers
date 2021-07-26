@@ -71,8 +71,6 @@ class Cognito(object):
             and self.setting.get("host")
             and self.setting.get("port")
             and self.setting.get("schema")
-            and event.get("request")
-            and event.get("request").get("userAttributes")
             and event.get("request").get("userAttributes").get("sub")
         ):
             dsn = "{}+{}://{}:{}@{}:{}/{}?charset={}".format(
@@ -105,13 +103,13 @@ class Cognito(object):
                 )
 
                 # 3. Get role id
-                role_ids = []
-                role_names = []
-                roles = RoleModel.scan(RoleModel.user_ids.contains(cognito_user_id))
+                # role_ids = []
+                # role_names = []
+                # roles = RoleModel.scan(RoleModel.user_ids.contains(cognito_user_id))
 
-                for role in roles:
-                    role_ids.append(role.role_id)
-                    role_names.append(role.name)
+                # for role in roles:
+                #     role_ids.append(role.role_id)
+                #     role_names.append(role.name)
 
                 event["response"]["claimsOverrideDetails"] = {
                     "claimsToAddOrOverride": {
@@ -119,10 +117,15 @@ class Cognito(object):
                         "team_id": str(team_user_relation.team_id)
                         if hasattr(team_user_relation, "team_id")
                         else "",
-                        "role_id": ",".join(role_ids),
-                        "roles": ",".join(role_names),
+                        "vendor_id": str(team_user_relation.team.vendor_id)
+                        if hasattr(team_user_relation, "team")
+                        and hasattr(team_user_relation.team, "vendor_id")
+                        else "",
                         "is_admin": str(user.is_admin),
                         "user_id": str(user.id),
+                        "s_vendor_id": str(user.s_vendor_id),
+                        # "role_id": ",".join(role_ids),
+                        # "roles": ",".join(role_names),
                     }
                 }
 
