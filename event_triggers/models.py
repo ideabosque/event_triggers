@@ -76,7 +76,6 @@ class TeamUserModel(Base):
     team_id = Column(Integer, ForeignKey("teams.team_id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     team = relationship("TeamModel", backref="user_teams")
-    # user = relationship("UserModel", backref="team_users")
 
 
 class UserModel(Base):
@@ -102,7 +101,11 @@ class UserModel(Base):
     seller_id = Column(Integer)
     erp_employee_ref = Column(Integer)
     cognito_user_sub = Column(String)
+
+
+class SellerModel(Base):
+    __tablename__ = "sellers"
+    seller_id = Column(Integer, primary_key=True, autoincrement=True)
+    active = Column(Integer)
+    seller_name = Column(String)
     s_vendor_id = Column(String)
-    # sellers = relationship(
-    #     "SellerManagerModel", back_populates="manager"
-    # )

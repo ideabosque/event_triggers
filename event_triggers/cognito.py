@@ -6,7 +6,7 @@ __author__ = "bl"
 
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
-from .models import UserModel
+from .models import SellerModel, UserModel
 from .models import TeamUserModel
 from .models import RoleModel
 
@@ -103,6 +103,11 @@ class Cognito(object):
                 )
 
                 # 3. Get role id
+                seller = (
+                    session.query(SellerModel)
+                    .filter_by(seller_id=user.seller_id)
+                    .first()
+                )
                 # role_ids = []
                 # role_names = []
                 # roles = RoleModel.scan(RoleModel.user_ids.contains(cognito_user_id))
@@ -123,7 +128,7 @@ class Cognito(object):
                         else "",
                         "is_admin": str(user.is_admin),
                         "user_id": str(user.id),
-                        "s_vendor_id": str(user.s_vendor_id),
+                        "s_vendor_id": str(seller.s_vendor_id),
                         # "role_id": ",".join(role_ids),
                         # "roles": ",".join(role_names),
                     }
