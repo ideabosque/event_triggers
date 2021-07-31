@@ -50,24 +50,13 @@ class TraitModel(BaseModel):
     updated_by = UnicodeAttribute()
 
 
-class RoleModel(TraitModel):
-    class Meta(TraitModel.Meta):
-        table_name = "se-roles"
-
-    role_id = UnicodeAttribute(hash_key=True)
-    name = UnicodeAttribute()
-    permissions = ListAttribute(of=MapAttribute)
-    description = UnicodeAttribute()
-    is_admin = BooleanAttribute()
-    user_ids = ListAttribute()
-
-
 class TeamModel(Base):
     __tablename__ = "teams"
     team_id = Column(Integer, primary_key=True, autoincrement=True)
     seller_id = Column(Integer)
     team_name = Column(String)
     vendor_id = Column(Integer)
+    erp_vendor_ref = Column(Integer)
 
 
 class TeamUserModel(Base):

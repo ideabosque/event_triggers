@@ -6,9 +6,7 @@ __author__ = "bl"
 
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
-from .models import SellerModel, UserModel
-from .models import TeamUserModel
-from .models import RoleModel
+from .models import SellerModel, UserModel, TeamUserModel
 
 
 # {
@@ -88,7 +86,7 @@ class Cognito(object):
                 sessionmaker(autocommit=False, autoflush=False, bind=engine)
             )
 
-            # 1. Get seller_id
+            # 1. Get user
             cognito_user_id = event.get("request").get("userAttributes").get("sub")
             user = (
                 session.query(UserModel)
@@ -102,19 +100,12 @@ class Cognito(object):
                     session.query(TeamUserModel).filter_by(user_id=user.id).first()
                 )
 
-                # 3. Get role id
+                # 3. Get seller info
                 seller = (
                     session.query(SellerModel)
                     .filter_by(seller_id=user.seller_id)
                     .first()
                 )
-                # role_ids = []
-                # role_names = []
-                # roles = RoleModel.scan(RoleModel.user_ids.contains(cognito_user_id))
-
-                # for role in roles:
-                #     role_ids.append(role.role_id)
-                #     role_names.append(role.name)
 
                 event["response"]["claimsOverrideDetails"] = {
                     "claimsToAddOrOverride": {
@@ -129,8 +120,10 @@ class Cognito(object):
                         "is_admin": str(user.is_admin),
                         "user_id": str(user.id),
                         "s_vendor_id": str(seller.s_vendor_id),
-                        # "role_id": ",".join(role_ids),
-                        # "roles": ",".join(role_names),
+                        "erp_vendor_ref": str(team_user_relation.team.erp_vendor_ref)
+                        if hasattr(team_user_relation, "team")
+                        and hasattr(team_user_relation.team, "erp_vendor_ref")
+                        else "",
                     }
                 }
 
