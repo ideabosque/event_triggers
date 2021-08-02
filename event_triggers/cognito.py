@@ -85,56 +85,61 @@ class Cognito(object):
             session = scoped_session(
                 sessionmaker(autocommit=False, autoflush=False, bind=engine)
             )
-
             # 1. Get user
             cognito_user_id = event.get("request").get("userAttributes").get("sub")
+            claimsToAddOrOverride = {}
             user = (
                 session.query(UserModel)
                 .filter_by(cognito_user_sub=cognito_user_id)
                 .first()
             )
 
-            claimsToAddOrOverride = {
-                "is_admin": str(user.is_admin),
-                "user_id": str(user.id),
-            }
+            if user:
+                if hasattr(user, "is_admin") and user.is_admin is not None:
+                    claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
-            if hasattr(user, "seller_id") and user.seller_id:
-                # 2. Get team id
-                team_user_relation = (
-                    session.query(TeamUserModel).filter_by(user_id=user.id).first()
-                )
+                if hasattr(user, "user_id") and user.user_id is not None:
+                    claimsToAddOrOverride["user_id"] = str(user.user_id)
 
-                # 3. Get seller info
-                seller = (
-                    session.query(SellerModel)
-                    .filter_by(seller_id=user.seller_id)
-                    .first()
-                )
+                if hasattr(user, "seller_id") and user.seller_id:
+                    # 2. Get team id
+                    team_user_relation = (
+                        session.query(TeamUserModel).filter_by(user_id=user.id).first()
+                    )
 
-                claimsToAddOrOverride.update(
-                    {
-                        "seller_id": str(user.seller_id),
-                        "s_vendor_id": str(seller.s_vendor_id)
-                        if hasattr(seller, "s_vendor_id")
-                        else "",
-                        "team_id": str(team_user_relation.team_id)
-                        if hasattr(team_user_relation, "team_id")
-                        else "",
-                        "vendor_id": str(team_user_relation.team.vendor_id)
-                        if hasattr(team_user_relation, "team")
-                        and hasattr(team_user_relation.team, "vendor_id")
-                        else "",
-                        "erp_vendor_ref": str(team_user_relation.team.erp_vendor_ref)
-                        if hasattr(team_user_relation, "team")
-                        and hasattr(team_user_relation.team, "erp_vendor_ref")
-                        else "",
-                    }
-                )
+                    # 3. Get seller info
+                    seller = (
+                        session.query(SellerModel)
+                        .filter_by(seller_id=user.seller_id)
+                        .first()
+                    )
 
-            event["response"]["claimsOverrideDetails"] = {
-                "claimsToAddOrOverride": claimsToAddOrOverride
-            }
+                    claimsToAddOrOverride.update(
+                        {
+                            "seller_id": str(user.seller_id),
+                            "s_vendor_id": str(seller.s_vendor_id)
+                            if hasattr(seller, "s_vendor_id")
+                            else "",
+                            "team_id": str(team_user_relation.team_id)
+                            if hasattr(team_user_relation, "team_id")
+                            else "",
+                            "vendor_id": str(team_user_relation.team.vendor_id)
+                            if hasattr(team_user_relation, "team")
+                            and hasattr(team_user_relation.team, "vendor_id")
+                            else "",
+                            "erp_vendor_ref": str(
+                                team_user_relation.team.erp_vendor_ref
+                            )
+                            if hasattr(team_user_relation, "team")
+                            and hasattr(team_user_relation.team, "erp_vendor_ref")
+                            else "",
+                        }
+                    )
+
+            if len(claimsToAddOrOverride.keys()):
+                event["response"]["claimsOverrideDetails"] = {
+                    "claimsToAddOrOverride": claimsToAddOrOverride
+                }
 
             session.close()
 
