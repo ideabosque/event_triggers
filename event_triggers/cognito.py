@@ -94,7 +94,12 @@ class Cognito(object):
                 .first()
             )
 
-            if hasattr(user, "seller_id"):
+            claimsToAddOrOverride = {
+                "is_admin": str(user.is_admin),
+                "user_id": str(user.id),
+            }
+
+            if hasattr(user, "seller_id") and user.seller_id:
                 # 2. Get team id
                 team_user_relation = (
                     session.query(TeamUserModel).filter_by(user_id=user.id).first()
@@ -107,9 +112,12 @@ class Cognito(object):
                     .first()
                 )
 
-                event["response"]["claimsOverrideDetails"] = {
-                    "claimsToAddOrOverride": {
+                claimsToAddOrOverride.update(
+                    {
                         "seller_id": str(user.seller_id),
+                        "s_vendor_id": str(seller.s_vendor_id)
+                        if hasattr(seller, "s_vendor_id")
+                        else "",
                         "team_id": str(team_user_relation.team_id)
                         if hasattr(team_user_relation, "team_id")
                         else "",
@@ -117,15 +125,16 @@ class Cognito(object):
                         if hasattr(team_user_relation, "team")
                         and hasattr(team_user_relation.team, "vendor_id")
                         else "",
-                        "is_admin": str(user.is_admin),
-                        "user_id": str(user.id),
-                        "s_vendor_id": str(seller.s_vendor_id),
                         "erp_vendor_ref": str(team_user_relation.team.erp_vendor_ref)
                         if hasattr(team_user_relation, "team")
                         and hasattr(team_user_relation.team, "erp_vendor_ref")
                         else "",
                     }
-                }
+                )
+
+            event["response"]["claimsOverrideDetails"] = {
+                "claimsToAddOrOverride": claimsToAddOrOverride
+            }
 
             session.close()
 
