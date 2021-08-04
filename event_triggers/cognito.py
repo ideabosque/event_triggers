@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+from sqlalchemy.sql.expression import asc
+
 __author__ = "bl"
 
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
-from .models import SellerModel, UserModel, TeamUserModel
+from .models import SellerModel, TeamModel, UserModel, TeamUserModel
 
 
 # {
@@ -95,46 +97,46 @@ class Cognito(object):
             )
 
             if user:
+                # Is admin user
                 if hasattr(user, "is_admin") and user.is_admin is not None:
                     claimsToAddOrOverride["is_admin"] = str(user.is_admin)
+
+                # 2. Get seller info
+                if hasattr(user, "seller_id") and user.seller_id and not user.is_admin:
+                    seller = (
+                        session.query(SellerModel)
+                        .order_by(SellerModel.seller_name.asc())
+                        .filter_by(seller_id=user.seller_id)
+                    ).first()
+
+                    if seller:
+                        if hasattr(seller, "seller_id"):
+                            claimsToAddOrOverride["seller_id"] = str(seller.seller_id)
+
+                        if hasattr(seller, "s_vendor_id"):
+                            claimsToAddOrOverride["s_vendor_id"] = str(user.s_vendor_id)
 
                 if hasattr(user, "user_id") and user.user_id is not None:
                     claimsToAddOrOverride["user_id"] = str(user.user_id)
 
-                if hasattr(user, "seller_id") and user.seller_id:
-                    # 2. Get team id
-                    team_user_relation = (
-                        session.query(TeamUserModel).filter_by(user_id=user.id).first()
-                    )
+                    if not user.is_admin:
+                        # 3. Get team id
+                        team_user_relation = (
+                            session.query(TeamUserModel)
+                            .filter_by(user_id=user.id)
+                            .first()
+                        )
 
-                    # 3. Get seller info
-                    seller = (
-                        session.query(SellerModel)
-                        .filter_by(seller_id=user.seller_id)
-                        .first()
-                    )
+                        if hasattr(team_user_relation, "team"):
+                            if hasattr(team_user_relation.team, "vendor_id"):
+                                claimsToAddOrOverride["vendor_id"] = str(
+                                    team_user_relation.team.vendor_id
+                                )
 
-                    claimsToAddOrOverride.update(
-                        {
-                            "seller_id": str(user.seller_id),
-                            "s_vendor_id": str(seller.s_vendor_id)
-                            if hasattr(seller, "s_vendor_id")
-                            else "",
-                            "team_id": str(team_user_relation.team_id)
-                            if hasattr(team_user_relation, "team_id")
-                            else "",
-                            "vendor_id": str(team_user_relation.team.vendor_id)
-                            if hasattr(team_user_relation, "team")
-                            and hasattr(team_user_relation.team, "vendor_id")
-                            else "",
-                            "erp_vendor_ref": str(
-                                team_user_relation.team.erp_vendor_ref
-                            )
-                            if hasattr(team_user_relation, "team")
-                            and hasattr(team_user_relation.team, "erp_vendor_ref")
-                            else "",
-                        }
-                    )
+                            if hasattr(team_user_relation.team, "erp_vendor_ref"):
+                                claimsToAddOrOverride["erp_vendor_ref"] = str(
+                                    team_user_relation.team.erp_vendor_ref
+                                )
 
             if len(claimsToAddOrOverride.keys()):
                 event["response"]["claimsOverrideDetails"] = {
