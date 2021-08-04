@@ -114,7 +114,9 @@ class Cognito(object):
                             claimsToAddOrOverride["seller_id"] = str(seller.seller_id)
 
                         if hasattr(seller, "s_vendor_id"):
-                            claimsToAddOrOverride["s_vendor_id"] = str(user.s_vendor_id)
+                            claimsToAddOrOverride["s_vendor_id"] = str(
+                                seller.s_vendor_id
+                            )
 
                 # 3. Get user id and get user team info
                 if hasattr(user, "user_id") and user.user_id is not None:
