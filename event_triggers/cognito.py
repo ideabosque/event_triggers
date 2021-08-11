@@ -124,6 +124,7 @@ class Cognito(object):
 
                     if not user.is_admin:
                         # 3. Get team id
+                        # @TODO: multiple team id
                         team_user_relation = (
                             session.query(TeamUserModel)
                             .filter_by(user_id=user.id)
