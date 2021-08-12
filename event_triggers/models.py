@@ -57,6 +57,7 @@ class TeamModel(Base):
     team_name = Column(String)
     vendor_id = Column(Integer)
     erp_vendor_ref = Column(Integer)
+    type = Column(Integer)
 
 
 class TeamUserModel(Base):

@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from sqlalchemy.sql.expression import asc
-
 __author__ = "bl"
 
+import json
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 from .models import SellerModel, TeamModel, UserModel, TeamUserModel
@@ -97,50 +96,48 @@ class Cognito(object):
             )
 
             if user:
+                # User id
+                if hasattr(user, "id") and user.id is not None:
+                    claimsToAddOrOverride["user_id"] = str(user.id)
+
                 # Is admin user
                 if hasattr(user, "is_admin") and user.is_admin is not None:
                     claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
-                # 2. Get seller info
+                # Get seller / teams info
                 if hasattr(user, "seller_id") and user.seller_id and not user.is_admin:
+                    claimsToAddOrOverride["seller_id"] = str(user.seller_id)
+                    # Get seller info
                     seller = (
                         session.query(SellerModel)
                         .order_by(SellerModel.seller_name.asc())
                         .filter_by(seller_id=user.seller_id)
                     ).first()
 
-                    if seller:
-                        if hasattr(seller, "seller_id"):
-                            claimsToAddOrOverride["seller_id"] = str(seller.seller_id)
+                    if hasattr(seller, "s_vendor_id") and seller.s_vendor_id:
+                        claimsToAddOrOverride["s_vendor_id"] = str(seller.s_vendor_id)
 
-                        if hasattr(seller, "s_vendor_id"):
-                            claimsToAddOrOverride["s_vendor_id"] = str(
-                                seller.s_vendor_id
-                            )
+                    # Get teams by seller id
+                    seller_teams = (
+                        session.query(TeamModel)
+                        .filter_by(seller_id=user.seller_id)
+                        .all()
+                    )
+                    teams = {}
 
-                # 3. Get user id and get user team info
-                if hasattr(user, "user_id") and user.user_id is not None:
-                    claimsToAddOrOverride["user_id"] = str(user.user_id)
+                    for team in seller_teams:
+                        if team and team.team_id:
+                            item = {"team_id": team.team_id}
 
-                    if not user.is_admin:
-                        # 3. Get team id
-                        # @TODO: multiple team id
-                        team_user_relation = (
-                            session.query(TeamUserModel)
-                            .filter_by(user_id=user.id)
-                            .first()
-                        )
+                            if team.vendor_id:
+                                item.update({"vendor_id": team.vendor_id})
 
-                        if hasattr(team_user_relation, "team"):
-                            if hasattr(team_user_relation.team, "vendor_id"):
-                                claimsToAddOrOverride["vendor_id"] = str(
-                                    team_user_relation.team.vendor_id
-                                )
+                            if team.erp_vendor_ref:
+                                item.update({"erp_vendor_ref": team.erp_vendor_ref})
 
-                            if hasattr(team_user_relation.team, "erp_vendor_ref"):
-                                claimsToAddOrOverride["erp_vendor_ref"] = str(
-                                    team_user_relation.team.erp_vendor_ref
-                                )
+                            teams.update({team.team_id: item})
+
+                    claimsToAddOrOverride.update({"teams": json.dumps(teams)})
 
             if len(claimsToAddOrOverride.keys()):
                 event["response"]["claimsOverrideDetails"] = {
