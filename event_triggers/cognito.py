@@ -156,13 +156,12 @@ class Cognito(object):
 
                     for team in seller_teams:
                         if team and team.team_id:
-                            item = {"team_id": team.team_id}
-
-                            if team.vendor_id:
-                                item.update({"vendor_id": team.vendor_id})
-
-                            if team.erp_vendor_ref:
-                                item.update({"erp_vendor_ref": team.erp_vendor_ref})
+                            item = {
+                                "team_id": team.team_id,
+                                "type": team.type,
+                                "vendor_id": team.vendor_id,
+                                "erp_vendor_ref": team.erp_vendor_ref,
+                            }
 
                             teams.update({team.team_id: item})
 
