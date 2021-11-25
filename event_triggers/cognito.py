@@ -8,6 +8,7 @@ import json
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 from .models import SellerModel, TeamModel, UserModel, TeamUserModel
+from silvaengine_auth import RelationshipModel, RoleRelationshipType
 
 
 # {
@@ -96,18 +97,18 @@ class Cognito(object):
             )
 
             if user:
-                # User id
+                # 1. Attach user id to token.
                 if hasattr(user, "id") and user.id is not None:
                     claimsToAddOrOverride["user_id"] = str(user.id)
 
-                # Is admin user
+                # 2. Is admin user
                 if hasattr(user, "is_admin") and user.is_admin is not None:
                     claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
-                # Get seller / teams info
+                # 3. Get seller / teams info
                 if hasattr(user, "seller_id") and user.seller_id and not user.is_admin:
                     claimsToAddOrOverride["seller_id"] = str(user.seller_id)
-                    # Get seller info
+                    # 3.1. Get seller info
                     seller = (
                         session.query(SellerModel)
                         .order_by(SellerModel.seller_name.asc())
@@ -117,11 +118,39 @@ class Cognito(object):
                     if hasattr(seller, "s_vendor_id") and seller.s_vendor_id:
                         claimsToAddOrOverride["s_vendor_id"] = str(seller.s_vendor_id)
 
-                    # Get teams by seller id
+                    # 3.2. Get teams by seller id
+                    permission_filter_conditions = (
+                        RelationshipModel.user_id == str(cognito_user_id).strip()
+                    ) & (
+                        RelationshipModel.type.is_in(
+                            RoleRelationshipType.ADMINISTRATOR.value,
+                            RoleRelationshipType.COMPANY.value,
+                        )
+                    )
+                    team_filter_conditions = [TeamModel.seller_id == user.seller_id]
+
+                    if hasattr(user, "id") and user.id is not None:
+                        permission_filter_conditions = (
+                            permission_filter_conditions
+                        ) | (RelationshipModel.user_id == str(user.id).strip())
+
+                    team_ids = list(
+                        set(
+                            [
+                                relationship.group_id
+                                for relationship in RelationshipModel.scan(
+                                    filter_condition=permission_filter_conditions
+                                )
+                                if not relationship.group_id
+                            ]
+                        )
+                    )
+
+                    if len(team_ids):
+                        team_filter_conditions.append(TeamModel.team_id.in_(team_ids))
+
                     seller_teams = (
-                        session.query(TeamModel)
-                        .filter_by(seller_id=user.seller_id)
-                        .all()
+                        session.query(TeamModel).filter(*team_filter_conditions).all()
                     )
                     teams = {}
 
