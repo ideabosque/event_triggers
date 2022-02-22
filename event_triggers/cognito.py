@@ -1,14 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-
-__author__ = "bl"
-
-import json
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
-from .models import SellerModel, TeamModel, UserModel, TeamUserModel
-from silvaengine_auth import RelationshipModel, RoleRelationshipType
+from .models import SellerModel, TeamModel, UserModel, TeamUserModel, RelationshipModel
+from .enumerations import RoleRelationshipType, UserSource
+import json
+
+__author__ = "bl"
 
 
 # {
@@ -45,15 +44,9 @@ class Cognito(object):
 
     # Trigger of pre-generate token
     def pre_token_generate(self, event, context):
-        database_type = (
-            self.setting.get("type") if self.setting.get("type") else "mysql"
-        )
-        driver_name = (
-            self.setting.get("driver") if self.setting.get("driver") else "pymysql"
-        )
-        charset = (
-            self.setting.get("charset") if self.setting.get("charset") else "utf8mb4"
-        )
+        database_type = self.setting.get("type", "mysql")
+        driver_name = self.setting.get("driver", "pymysql")
+        charset = self.setting.get("charset", "utf8mb4")
         sources = [
             "tokengeneration_hostedauth",
             "tokengeneration_newpasswordchallenge",
@@ -65,13 +58,13 @@ class Cognito(object):
         if (
             event
             and event.get("triggerSource")
-            and sources.__contains__(event.get("triggerSource").lower())
+            and sources.__contains__(str(event.get("triggerSource")).strip().lower())
             and self.setting.get("user")
             and self.setting.get("password")
             and self.setting.get("host")
             and self.setting.get("port")
             and self.setting.get("schema")
-            and event.get("request").get("userAttributes").get("sub")
+            and event.get("request", {}).get("userAttributes", {}).get("sub")
         ):
             dsn = "{}+{}://{}:{}@{}:{}/{}?charset={}".format(
                 database_type,
@@ -88,25 +81,29 @@ class Cognito(object):
                 sessionmaker(autocommit=False, autoflush=False, bind=engine)
             )
             # 1. Get user
-            cognito_user_id = event.get("request").get("userAttributes").get("sub")
-            claimsToAddOrOverride = {}
+            cognito_user_id = (
+                event.get("request", {}).get("userAttributes", {}).get("sub")
+            )
             user = (
                 session.query(UserModel)
                 .filter_by(cognito_user_sub=cognito_user_id)
                 .first()
             )
+            claimsToAddOrOverride = {
+                "source": str(user.source if user.source else UserSource.SS3.value)
+            }
 
             if user:
                 # 1. Attach user id to token.
-                if hasattr(user, "id") and user.id is not None:
+                if user.id is not None:
                     claimsToAddOrOverride["user_id"] = str(user.id)
 
                 # 2. Is admin user
-                if hasattr(user, "is_admin") and user.is_admin is not None:
+                if user.is_admin is not None:
                     claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
                 # 3. Get seller / teams info
-                if hasattr(user, "seller_id") and user.seller_id and not user.is_admin:
+                if user.seller_id and not user.is_admin:
                     claimsToAddOrOverride["seller_id"] = str(user.seller_id)
                     # 3.1. Get seller info
                     seller = (
@@ -115,7 +112,7 @@ class Cognito(object):
                         .filter_by(seller_id=user.seller_id)
                     ).first()
 
-                    if hasattr(seller, "s_vendor_id") and seller.s_vendor_id:
+                    if seller.s_vendor_id:
                         claimsToAddOrOverride["s_vendor_id"] = str(seller.s_vendor_id)
 
                     # 3.2. Get teams by seller id
@@ -129,7 +126,7 @@ class Cognito(object):
                     )
                     team_filter_conditions = [TeamModel.seller_id == user.seller_id]
 
-                    if hasattr(user, "id") and user.id is not None:
+                    if user.id is not None:
                         permission_filter_conditions = (
                             permission_filter_conditions
                         ) | (RelationshipModel.user_id == str(user.id).strip())

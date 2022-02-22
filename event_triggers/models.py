@@ -1,10 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-
-__author__ = "bl"
-
-import os, pendulum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func, Text, Table
 from sqlalchemy.orm import backref, relationship
@@ -15,7 +11,13 @@ from pynamodb.attributes import (
     UnicodeAttribute,
     BooleanAttribute,
     UTCDateTimeAttribute,
+    NumberAttribute,
 )
+from .enumerations import UserSource
+import os, pendulum
+
+__author__ = "bl"
+
 
 Base = declarative_base()
 
@@ -48,6 +50,19 @@ class TraitModel(BaseModel):
     created_at = UTCDateTimeAttribute()
     updated_at = UTCDateTimeAttribute()
     updated_by = UnicodeAttribute()
+
+
+class RelationshipModel(TraitModel):
+    class Meta(TraitModel.Meta):
+        table_name = "se-relationships"
+
+    relationship_id = UnicodeAttribute(hash_key=True)
+    # type: 0 - amdin, 1 - Seller, 2 - team
+    type = NumberAttribute(default=0)
+    user_id = UnicodeAttribute()
+    role_id = UnicodeAttribute()
+    group_id = UnicodeAttribute(null=True)
+    status = BooleanAttribute(default=True)
 
 
 class TeamModel(Base):
@@ -91,6 +106,7 @@ class UserModel(Base):
     seller_id = Column(Integer)
     erp_employee_ref = Column(Integer)
     cognito_user_sub = Column(String)
+    source = Column(Integer, default=UserSource.SS3.value)
 
 
 class SellerModel(Base):
