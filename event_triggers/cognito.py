@@ -44,7 +44,6 @@ class Cognito(object):
 
     # Trigger of pre-generate token
     def pre_token_generate(self, event, context):
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Pre token generate >>>>>>>>>>>>")
         try:
             database_type = self.setting.get("type", "mysql")
             driver_name = self.setting.get("driver", "pymysql")
@@ -94,7 +93,9 @@ class Cognito(object):
                     .first()
                 )
                 claimsToAddOrOverride = {
-                    "source": str(user.source if user.source else UserSource.SS3.value)
+                    "source": str(
+                        user.source if user and user.source else UserSource.SS3.value
+                    )
                 }
 
                 if user:
