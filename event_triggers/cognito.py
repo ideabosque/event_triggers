@@ -4,7 +4,7 @@ from __future__ import print_function
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 from .models import SellerModel, TeamModel, UserModel, TeamUserModel, RelationshipModel
-from .enumerations import RoleRelationshipType, UserSource
+from .enumerations import RoleRelationshipType, UserSource, SwitchStatus
 import json
 
 __author__ = "bl"
@@ -95,7 +95,8 @@ class Cognito(object):
                 claimsToAddOrOverride = {
                     "source": str(
                         user.source if user and user.source else UserSource.SS3.value
-                    )
+                    ),
+                    "is_admin": str(SwitchStatus.NO.value),
                 }
 
                 if user:
