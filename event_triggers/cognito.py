@@ -3,8 +3,8 @@
 from __future__ import print_function
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
-from .models import SellerModel, TeamModel, UserModel, TeamUserModel, RelationshipModel
-from .enumerations import RoleRelationshipType, UserSource, SwitchStatus
+from .models import SellerModel, TeamModel, UserModel, RelationshipModel
+from .enumerations import RoleRelationshipType, SwitchStatus, UserSource
 import json
 
 __author__ = "bl"
@@ -44,6 +44,8 @@ class Cognito(object):
 
     # Trigger of pre-generate token
     def pre_token_generate(self, event, context):
+        print("Pre generate token::::", event)
+        print(context.__dict__)
         try:
             database_type = self.setting.get("type", "mysql")
             driver_name = self.setting.get("driver", "pymysql")
@@ -93,9 +95,7 @@ class Cognito(object):
                     .first()
                 )
                 claimsToAddOrOverride = {
-                    "source": str(
-                        user.source if user and user.source else UserSource.SS3.value
-                    ),
+                    # "source": str(UserSource.SS3.value),
                     "is_admin": str(SwitchStatus.NO.value),
                 }
 
@@ -108,10 +108,14 @@ class Cognito(object):
                     if user.is_admin is not None:
                         claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
-                    # 3. Get seller / teams info
+                    # 3. User source
+                    # if user.source is not None:
+                    #     claimsToAddOrOverride["source"] = str(user.source)
+
+                    # 4. Get seller / teams info
                     if user.seller_id and not user.is_admin:
                         claimsToAddOrOverride["seller_id"] = str(user.seller_id)
-                        # 3.1. Get seller info
+                        # 4.1. Get seller info
                         seller = (
                             session.query(SellerModel)
                             .order_by(SellerModel.seller_name.asc())
@@ -123,7 +127,7 @@ class Cognito(object):
                                 seller.s_vendor_id
                             )
 
-                        # 3.2. Get teams by seller id
+                        # 4.2. Get teams by seller id
                         permission_filter_conditions = (
                             RelationshipModel.user_id == str(cognito_user_id).strip()
                         ) & (
@@ -180,6 +184,8 @@ class Cognito(object):
                     event["response"]["claimsOverrideDetails"] = {
                         "claimsToAddOrOverride": claimsToAddOrOverride
                     }
+
+                print("Token claims >>>>>>>>>>>>>>>>>>>>", claimsToAddOrOverride)
 
                 session.close()
             # Return to Amazon Cognito
