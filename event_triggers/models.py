@@ -13,7 +13,6 @@ from pynamodb.attributes import (
     UTCDateTimeAttribute,
     NumberAttribute,
 )
-from .enumerations import UserSource
 import os, pendulum
 
 __author__ = "bl"
@@ -106,7 +105,7 @@ class UserModel(Base):
     seller_id = Column(Integer)
     erp_employee_ref = Column(Integer)
     cognito_user_sub = Column(String)
-    source = Column(Integer, default=UserSource.SS3.value)
+    source = Column(Integer, default=0)
 
 
 class SellerModel(Base):
