@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from silvaengine_utility import Utility
-from silvaengine_resource import SwitchStatus
+from .enumerations import SwitchStatus
 import json
 
 __author__ = "bl"
