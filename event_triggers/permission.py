@@ -18,7 +18,7 @@ class Permission(object):
             is_admin = int(str(claims.get("is_admin", SwitchStatus.NO.value)).strip())
 
             # Use `endpoint_id` to differentiate app channels
-            if bool(is_admin) == False and str(channel).strip() == Channel.SS3.value:
+            if bool(is_admin) == False:
                 owner_id = claims.get("seller_id")
                 teams = claims.get("teams")
 
