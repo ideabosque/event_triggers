@@ -15,6 +15,7 @@ class Permission(object):
 
     def after_token_parsed_ss3(claims, context):
         try:
+            print("Only work for ss3 ..............................................")
             is_admin = int(str(claims.get("is_admin", SwitchStatus.NO.value)).strip())
 
             # Use `endpoint_id` to differentiate app channels
