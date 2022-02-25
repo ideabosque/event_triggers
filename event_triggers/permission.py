@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from silvaengine_utility import Utility
-from silvaengine_resource import Channel, SwitchStatus
+from silvaengine_resource import SwitchStatus
 import json
 
 __author__ = "bl"
@@ -13,7 +13,7 @@ class Permission(object):
         self.logger = logger
         self.setting = settings
 
-    def after_token_parsed_ss3(channel, claims, context):
+    def after_token_parsed_ss3(claims, context):
         try:
             is_admin = int(str(claims.get("is_admin", SwitchStatus.NO.value)).strip())
 
