@@ -13,10 +13,10 @@ class Permission(object):
         self.logger = logger
         self.setting = settings
 
+    # Implementation of hook configuration `after_token_parsed_hooks`
     @staticmethod
     def after_token_parsed_ss3(claims, context):
         try:
-            print("Only work for ss3 ..............................................")
             is_admin = int(str(claims.get("is_admin", SwitchStatus.NO.value)).strip())
 
             # Use `endpoint_id` to differentiate app channels
@@ -38,7 +38,7 @@ class Permission(object):
 
                     claims.pop("teams")
                     claims.update(teams.get(context.get("team_id")))
-
+            print("Only work for ss3 ..........................", claims)
             return claims
         except Exception as e:
             raise e
