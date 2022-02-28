@@ -13,6 +13,7 @@ class Permission(object):
         self.logger = logger
         self.setting = settings
 
+    @staticmethod
     def after_token_parsed_ss3(claims, context):
         try:
             print("Only work for ss3 ..............................................")
