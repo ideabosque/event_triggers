@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from .models import SellerModel, TeamModel, UserModel, RelationshipModel
 from .enumerations import RoleRelationshipType, SwitchStatus
 import json
@@ -81,9 +81,13 @@ class Cognito(object):
                     self.setting.get("schema"),
                     charset,
                 )
-                engine = create_engine(dsn)
+                print("DATABASE DSN FOR EVENT TRIGGER::::{}".format(dsn))
                 session = scoped_session(
-                    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+                    sessionmaker(
+                        autocommit=False,
+                        autoflush=False,
+                        bind=create_engine(dsn),
+                    )
                 )
                 # 1. Get user
                 cognito_user_id = (
@@ -97,6 +101,15 @@ class Cognito(object):
                 claimsToAddOrOverride = {
                     "is_admin": str(SwitchStatus.NO.value),
                 }
+
+                print(
+                    "USER INFO::::::{}".format(
+                        {
+                            c.key: getattr(user, c.key)
+                            for c in inspect(user).mapper.column_attrs
+                        }
+                    )
+                )
 
                 if user:
                     # 1. Attach user id to token.
