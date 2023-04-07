@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine
 from .models import SellerModel, TeamModel, UserModel, RelationshipModel
 from .enumerations import RoleRelationshipType, SwitchStatus
 import json
@@ -81,18 +81,19 @@ class Cognito(object):
                     self.setting.get("schema"),
                     charset,
                 )
-                print("DATABASE DSN FOR EVENT TRIGGER::::{}".format(dsn))
+                engine = create_engine(dsn)
                 session = scoped_session(
                     sessionmaker(
                         autocommit=False,
                         autoflush=False,
-                        bind=create_engine(dsn),
+                        bind=engine,
                     )
                 )
                 # 1. Get user
                 cognito_user_id = (
                     event.get("request", {}).get("userAttributes", {}).get("sub")
                 )
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>", cognito_user_id)
                 user = (
                     session.query(UserModel)
                     .filter_by(cognito_user_sub=cognito_user_id)
@@ -102,27 +103,22 @@ class Cognito(object):
                     "is_admin": str(SwitchStatus.NO.value),
                 }
 
-                print(
-                    "USER INFO::::::{}".format(
-                        {
-                            c.key: getattr(user, c.key)
-                            for c in inspect(user).mapper.column_attrs
-                        }
-                    )
-                )
+                if not user:
+                    raise Exception("User not exists.")
 
-                if user:
-                    # 1. Attach user id to token.
-                    if user.id is not None:
-                        claimsToAddOrOverride["user_id"] = str(user.id)
+                # 1. Attach user id to token.
+                if user.id is not None:
+                    claimsToAddOrOverride["user_id"] = str(user.id)
 
-                    # 2. Is admin user
-                    if user.is_admin is not None:
-                        claimsToAddOrOverride["is_admin"] = str(user.is_admin)
+                # 2. Is admin user
+                if user.is_admin is not None:
+                    claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
-                    # 3. Get seller / teams info
-                    if user.seller_id and not user.is_admin:
-                        claimsToAddOrOverride["seller_id"] = str(user.seller_id)
+                # 3. Get seller / teams info
+                if user.seller_id and not user.is_admin:
+                    claimsToAddOrOverride["seller_id"] = str(user.seller_id)
+
+                    if self.setting.get("extended_info_in_token", True):
                         # 3.1. Get seller info
                         seller = (
                             session.query(SellerModel)
@@ -131,9 +127,7 @@ class Cognito(object):
                         ).first()
 
                         if seller.s_vendor_id:
-                            claimsToAddOrOverride["s_vendor_id"] = str(
-                                seller.s_vendor_id
-                            )
+                            claimsToAddOrOverride["s_vendor_id"] = str(seller.s_vendor_id)
 
                         # 3.2. Get teams by seller id
                         permission_filter_conditions = (
@@ -164,14 +158,10 @@ class Cognito(object):
                         )
 
                         if len(team_ids):
-                            team_filter_conditions.append(
-                                TeamModel.team_id.in_(team_ids)
-                            )
+                            team_filter_conditions.append(TeamModel.team_id.in_(team_ids))
 
                         seller_teams = (
-                            session.query(TeamModel)
-                            .filter(*team_filter_conditions)
-                            .all()
+                            session.query(TeamModel).filter(*team_filter_conditions).all()
                         )
                         teams = {}
 
