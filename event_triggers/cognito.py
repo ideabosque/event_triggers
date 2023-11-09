@@ -44,8 +44,8 @@ class Cognito(object):
 
     # Trigger of pre-generate token
     def pre_token_generate(self, event, context):
-        print("Pre generate token::::", event)
-        print(context.__dict__)
+        # print("Pre generate token::::", event)
+        # print(context.__dict__)
         try:
             database_type = self.setting.get("type", "mysql")
             driver_name = self.setting.get("driver", "pymysql")
@@ -81,7 +81,7 @@ class Cognito(object):
                     self.setting.get("schema"),
                     charset,
                 )
-                print("DATABASE DSN FOR EVENT TRIGGER::::{}".format(dsn))
+                # print("DATABASE DSN FOR EVENT TRIGGER::::{}".format(dsn))
                 session = scoped_session(
                     sessionmaker(
                         autocommit=False,
@@ -100,16 +100,17 @@ class Cognito(object):
                 )
                 claimsToAddOrOverride = {
                     "is_admin": str(SwitchStatus.NO.value),
+                    "from": self.setting.get("system_code","ss3"),
                 }
 
-                print(
-                    "USER INFO::::::{}".format(
-                        {
-                            c.key: getattr(user, c.key)
-                            for c in inspect(user).mapper.column_attrs
-                        }
-                    )
-                )
+                # print(
+                #     "USER INFO::::::{}".format(
+                #         {
+                #             c.key: getattr(user, c.key)
+                #             for c in inspect(user).mapper.column_attrs
+                #         }
+                #     )
+                # )
 
                 if user:
                     # 1. Attach user id to token.
@@ -193,7 +194,7 @@ class Cognito(object):
                         "claimsToAddOrOverride": claimsToAddOrOverride
                     }
 
-                print("Token claims >>>>>>>>>>>>>>>>>>>>", claimsToAddOrOverride)
+                # print("Token claims >>>>>>>>>>>>>>>>>>>>", claimsToAddOrOverride)
 
                 session.close()
             # Return to Amazon Cognito
