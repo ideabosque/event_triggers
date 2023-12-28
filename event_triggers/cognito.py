@@ -132,7 +132,7 @@ class Cognito(object):
                             .filter_by(seller_id=user.seller_id)
                         ).first()
 
-                        if seller.s_vendor_id:
+                        if seller and seller.s_vendor_id:
                             claimsToAddOrOverride["s_vendor_id"] = str(
                                 seller.s_vendor_id
                             )
