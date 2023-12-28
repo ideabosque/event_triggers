@@ -93,6 +93,7 @@ class Cognito(object):
                 cognito_user_id = (
                     event.get("request", {}).get("userAttributes", {}).get("sub")
                 )
+                print("EVENT TRIGGER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", cognito_user_id)
                 user = (
                     session.query(UserModel)
                     .filter_by(cognito_user_sub=cognito_user_id)
@@ -103,14 +104,14 @@ class Cognito(object):
                     "from": self.setting.get("system_code","ss3"),
                 }
 
-                # print(
-                #     "USER INFO::::::{}".format(
-                #         {
-                #             c.key: getattr(user, c.key)
-                #             for c in inspect(user).mapper.column_attrs
-                #         }
-                #     )
-                # )
+                print(
+                    "EVENT TRIGGER USER INFO::::::{}".format(
+                        {
+                            c.key: getattr(user, c.key)
+                            for c in inspect(user).mapper.column_attrs
+                        }
+                    )
+                )
 
                 if user:
                     # 1. Attach user id to token.
@@ -194,7 +195,7 @@ class Cognito(object):
                         "claimsToAddOrOverride": claimsToAddOrOverride
                     }
 
-                # print("Token claims >>>>>>>>>>>>>>>>>>>>", claimsToAddOrOverride)
+                print("Token claims >>>>>>>>>>>>>>>>>>>>", claimsToAddOrOverride)
 
                 session.close()
             # Return to Amazon Cognito
