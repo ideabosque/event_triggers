@@ -123,7 +123,7 @@ class Cognito(object):
                         claimsToAddOrOverride["is_admin"] = str(user.is_admin)
 
                     # 3. Get seller / teams info
-                    if user.seller_id and not user.is_admin:
+                    if user.seller_id is not None:
                         claimsToAddOrOverride["seller_id"] = str(user.seller_id)
                         # 3.1. Get seller info
                         seller = (
